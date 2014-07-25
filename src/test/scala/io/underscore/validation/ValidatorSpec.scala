@@ -96,17 +96,42 @@ class ValidatorSpec extends Specification {
     validator(1)  mustEqual pass
     validator(-1) mustEqual fail("fail")
   }
-
+  
   "nonEmpty" >> {
     val validator: Validator[String] = nonEmpty("fail")
     validator("")  mustEqual fail("fail")
     validator(" ") mustEqual pass
   }
 
-  "lengthLt"  >> pending
-  "lengthLte" >> pending
-  "lengthGt"  >> pending
-  "lengthGte" >> pending
+  "nonEmpty non String" >> {
+    val validator: Validator[Seq[Int]] = nonEmpty("fail")
+    validator(List():List[Int])  mustEqual fail("fail")
+    validator(List(1,2,3,4,5,6)) mustEqual pass
+  }  
+  
+  "lengthLt"  >> {
+    val validator: Validator[Seq[Int]] = lengthLt(6)
+    validator(List(1,2,3,4,5,6))   mustEqual fail("Length must be less than 6")
+    validator(List():List[Int])    mustEqual pass
+  }
+  
+  "lengthLte" >> {
+    val validator: Validator[Seq[Int]] = lengthLte(6)
+    validator(List(1,2,3,4,5,6))     mustEqual pass
+    validator(List(1,2,3,4,5,6,7))   mustEqual fail("Length must be at most 6")    
+  }  
+  
+  "lengthGt"  >> {
+    val validator: Validator[Seq[Int]] = lengthGt(6)
+    validator(List(1,2,3,4,5,6))    mustEqual fail("Length must be more than 6")
+    validator(List(1,2,3,4,5,6,7))  mustEqual pass     
+  }  
+  
+  "lengthGte" >> {
+    val validator: Validator[Seq[Int]] = lengthGte(6)
+    validator(List(1,2,3,4,5))    mustEqual fail("Length must be at least 6")
+    validator(List(1,2,3,4,5,6))  mustEqual pass     
+  }
 
   "matchesRegex" >> {
     val validator = matchesRegex("^[^@]+@[^@]+$".r, "Must be an email")
