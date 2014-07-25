@@ -121,3 +121,11 @@ res1: Seq[io.underscore.validation.ValidationResult] = List(
   ValidationError(Must be 1 or higher,ValidationPath(house)),
   ValidationWarning(Must not be empty,ValidationPath(street)))
 ~~~
+
+Contributors
+------------
+
+Many thanks to the following for their contributions:
+
+ - [Jono Ferguson](https://github.com/jonoabroad)
+ - [Richard Dallaway](https://github.com/d6y)
