@@ -1,7 +1,7 @@
 import sbt.Keys._
 
 lazy val root = project.in(file(".")).
-  aggregate(fooJS, fooJVM)
+  aggregate(validationJS, validationJVM)
 
 lazy val validation = crossProject.in(file(".")).
   settings(
@@ -9,7 +9,7 @@ lazy val validation = crossProject.in(file(".")).
     scalacOptions ++= Seq("-deprecation", "-feature"),
     organization := "io.underscore",
     name := "validation",
-    version := "0.0.1",
+    version := "0.0.2",
     publishTo := Some(Resolver.file("file", new File("../maven-repo"))),
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
@@ -24,8 +24,8 @@ lazy val validation = crossProject.in(file(".")).
     // Add JS-specific settings here
   )
 
-lazy val fooJVM = validation.jvm
-lazy val fooJS = validation.js
+lazy val validationJVM = validation.jvm
+lazy val validationJS = validation.js
 
 
 
