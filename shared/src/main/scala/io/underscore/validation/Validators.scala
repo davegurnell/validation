@@ -45,28 +45,28 @@ trait Validators {
   def neq[A](comp: A, msg: => String): Validator[A] =
     Validator[A] { in => if(in == comp) fail(msg) else pass }
 
-  def lt[A](comp: A)(implicit order: Ordering[A]): Validator[A] =
+  def lt[A](comp: A)(implicit order: Ordering[_ >: A]): Validator[A] =
     lt(comp, s"Must be less than $comp")
 
-  def lt[A](comp: A, msg: => String)(implicit order: Ordering[A]): Validator[A] =
+  def lt[A](comp: A, msg: => String)(implicit order: Ordering[_ >: A]): Validator[A] =
     Validator[A] { in => if(order.lt(in, comp)) pass else fail(msg) }
 
-  def lte[A](comp: A)(implicit order: Ordering[A]): Validator[A] =
+  def lte[A](comp: A)(implicit order: Ordering[_ >: A]): Validator[A] =
     lte(comp, s"Must be $comp or less")
 
-  def lte[A](comp: A, msg: => String)(implicit order: Ordering[A]): Validator[A] =
+  def lte[A](comp: A, msg: => String)(implicit order: Ordering[_ >: A]): Validator[A] =
     Validator[A] { in => if(order.lteq(in, comp)) pass else fail(msg) }
 
-  def gt[A](comp: A)(implicit order: Ordering[A]): Validator[A] =
+  def gt[A](comp: A)(implicit order: Ordering[_ >: A]): Validator[A] =
     gt(comp, s"Must be greater than $comp")
 
-  def gt[A](comp: A, msg: => String)(implicit order: Ordering[A]): Validator[A] =
+  def gt[A](comp: A, msg: => String)(implicit order: Ordering[_ >: A]): Validator[A] =
     Validator[A] { in => if(order.gt(in, comp)) pass else fail(msg) }
 
-  def gte[A](comp: A)(implicit order: Ordering[A]): Validator[A] =
+  def gte[A](comp: A)(implicit order: Ordering[_ >: A]): Validator[A] =
     gte(comp, s"Must be $comp or higher")
 
-  def gte[A](comp: A, msg: => String)(implicit order: Ordering[A]): Validator[A] =
+  def gte[A](comp: A, msg: => String)(implicit order: Ordering[_ >: A]): Validator[A] =
     Validator[A] { in => if(order.gteq(in, comp)) pass else fail(msg) }
   
   def nonEmpty[E, S <% Seq[E]]: Validator[S] =

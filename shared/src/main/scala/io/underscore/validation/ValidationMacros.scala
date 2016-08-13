@@ -11,9 +11,19 @@ class ValidationMacros(val c: Context) {
     q"${c.prefix}.field(${name.toString}, _.${name})($validator)"
   }
 
+  def fieldWith[A, B](accessor: c.Tree)(validatorBuilder: c.Tree): c.Tree = {
+    val name = accessorName(accessor)
+    q"${c.prefix}.fieldWith(${name.toString}, _.${name})($validatorBuilder)"
+  }
+
   def seqField[A, B](accessor: c.Tree)(validator: c.Tree): c.Tree = {
     val name = accessorName(accessor)
     q"${c.prefix}.seqField(${name.toString}, _.${name})($validator)"
+  }
+
+  def seqFieldWith[A, B](accessor: c.Tree)(validatorBuilder: c.Tree): c.Tree = {
+    val name = accessorName(accessor)
+    q"${c.prefix}.seqFieldWith(${name.toString}, _.${name})($validatorBuilder)"
   }
 
   def fieldUpdate[A, B](accessor: c.Tree)(validator: c.Tree): c.Tree = {
