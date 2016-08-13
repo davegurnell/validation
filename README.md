@@ -14,7 +14,7 @@ Synopsis
 scala> :paste
 // Entering paste mode (ctrl-D to finish)
 
-import io.underscore.validation._
+import checklist._
 
 case class Address(house: Int, street: String)
 case class Person(name: String, age: Int, address: Address)
@@ -38,13 +38,13 @@ implicit val businessValidator: Validator[Business] =
 
 // Exiting paste mode, now interpreting.
 
-import io.underscore.validation._
+import checklist._
 defined class Address
 defined class Person
 defined class Business
-addressValidator: io.underscore.validation.Validator[Address] = <function1>
-personValidator: io.underscore.validation.Validator[Person] = <function1>
-businessValidator: io.underscore.validation.Validator[Business] = <function1>
+addressValidator: checklist.Validator[Address] = <function1>
+personValidator: checklist.Validator[Person] = <function1>
+businessValidator: checklist.Validator[Business] = <function1>
 
 scala> Person("", 0, Address(0, "")).validate.prettyPrint
 res0: String =
@@ -66,7 +66,7 @@ where a `ValidationResult` represents a validation error or warning and encapsul
 
 ~~~ scala
 scala> ValidationError("FAIL!") prefix 123 prefix "bar" prefix "foo"
-res0: io.underscore.validation.ValidationError = ValidationError(FAIL!,ValidationPath(foo.bar[123]))
+res0: checklist.ValidationError = ValidationError(FAIL!,ValidationPath(foo.bar[123]))
 
 scala> res0.message
 res1: String = FAIL!
@@ -79,26 +79,26 @@ The library contains a DSL for constructing validators and using them to build o
 
 ~~~ scala
 scala> gte(0) and lte(3)
-res0: io.underscore.validation.Validator[Int] = <function1>
+res0: checklist.Validator[Int] = <function1>
 
 scala> required(res0)
-res1: io.underscore.validation.Validator[Option[Int]] = <function1>
+res1: checklist.Validator[Option[Int]] = <function1>
 
 scala> res1(None)
-res2: Seq[io.underscore.validation.ValidationResult] = List(ValidationError(Value is required,ValidationPath()))
+res2: Seq[checklist.ValidationResult] = List(ValidationError(Value is required,ValidationPath()))
 
 scala> res1(Some(-1))
-res3: Seq[io.underscore.validation.ValidationResult] = List(ValidationError(Must be 0 or higher,ValidationPath()))
+res3: Seq[checklist.ValidationResult] = List(ValidationError(Must be 0 or higher,ValidationPath()))
 ~~~
 
 Like validation results, validators can be assocated with specific paths into the data:
 
 ~~~ scala
 scala> res1 prefix "inner" prefix "outer"
-res4: io.underscore.validation.Validator[Option[Int]] = <function1>
+res4: checklist.Validator[Option[Int]] = <function1>
 
 scala> res4(Some(4))
-res5: Seq[io.underscore.validation.ValidationResult] = List(ValidationError(Must be 3 or lower,ValidationPath(outer.inner)))
+res5: Seq[checklist.ValidationResult] = List(ValidationError(Must be 3 or lower,ValidationPath(outer.inner)))
 ~~~
 
 The library makes use of Scala macros in certain places to automatically capture path information from the names of accessors used to drill down into data:
@@ -110,10 +110,10 @@ defined class Address
 scala> validate[Address].
      | field(_.house)(gte(1)).
      | field(_.street)(warn(nonEmpty))
-res0: io.underscore.validation.Validator[Address] = <function1>
+res0: checklist.Validator[Address] = <function1>
 
 scala> res0(Address(-1, ""))
-res1: Seq[io.underscore.validation.ValidationResult] = List(
+res1: Seq[checklist.ValidationResult] = List(
   ValidationError(Must be 1 or higher,ValidationPath(house)),
   ValidationWarning(Must not be empty,ValidationPath(street)))
 ~~~
