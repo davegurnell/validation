@@ -4,7 +4,8 @@ import cats.{Applicative, Traverse}
 import cats.data.Ior
 import cats.syntax.functor._
 import cats.syntax.traverse._
-import monocle.PLens
+import monocle.{PLens, Lens}
+import scala.language.experimental.macros
 import scala.language.higherKinds
 import scala.util.matching.Regex
 import Message.{errors, warnings}
@@ -12,44 +13,41 @@ import Message.{errors, warnings}
 sealed abstract class Rule[A, B] {
   def apply(value: A): Checked[B]
 
-  @inline def map[C](func: B => C): Rule[A, C] =
+  def map[C](func: B => C): Rule[A, C] =
     Rule.map(this, func)
 
-  @inline def contramap[C](func: C => A): Rule[C, B] =
+  def contramap[C](func: C => A): Rule[C, B] =
     Rule.contramap(this, func)
 
-  @inline def flatMap[C](func: B => Rule[A, C]): Rule[A, C] =
+  def flatMap[C](func: B => Rule[A, C]): Rule[A, C] =
     Rule.flatMap(this, func)
 
-  @inline def andThen[C](that: Rule[B, C]): Rule[A, C] =
+  def andThen[C](that: Rule[B, C]): Rule[A, C] =
     Rule.andThen(this, that)
 
-  @inline def zip[C](that: Rule[A, C]): Rule[A, (B, C)] =
+  def zip[C](that: Rule[A, C]): Rule[A, (B, C)] =
     Rule.zip(this, that)
 
-  @inline def and[C](that: Rule[A, B]): Rule[A, B] =
+  def and[C](that: Rule[A, B]): Rule[A, B] =
     Rule.and(this, that)
 
-  @inline def seq[S[_]: Traverse]: Rule[S[A], S[B]] =
+  def seq[S[_]: Traverse]: Rule[S[A], S[B]] =
     Rule.seq(this)
 
-  @inline def opt: Rule[Option[A], Option[B]] =
+  def opt: Rule[Option[A], Option[B]] =
     Rule.opt(this)
 
-  @inline def req(messages: Messages): Rule[Option[A], B] =
+  def req(messages: Messages): Rule[Option[A], B] =
     Rule.req(this, messages)
 
-  @inline def prefix[P: PathPrefix](prefix: P): Rule[A, B] =
+  def prefix[P: PathPrefix](prefix: P): Rule[A, B] =
     Rule.prefix(this, prefix)
 
-  @inline def composeLens[S, T](lens: PLens[S, T, A, B]): Rule[S, T] =
+  def composeLens[S, T](lens: PLens[S, T, A, B]): Rule[S, T] =
     Rule.composeLens(this, lens)
 
-  @inline def at[P: PathPrefix, S, T](prefix: P, lens: PLens[S, T, A, B]): Rule[S, T] =
+  def at[P: PathPrefix, S, T](prefix: P, lens: PLens[S, T, A, B]): Rule[S, T] =
     Rule.at(this, prefix, lens)
-
-  @inline def field[P: PathPrefix, C, D](prefix: P, lens: PLens[A, B, C, D])(rule: Rule[C, D]): Rule[A, B] =
-    Rule.and(this, Rule.at(rule, prefix, lens))
 }
 
 object Rule extends BaseRules
@@ -57,6 +55,7 @@ object Rule extends BaseRules
   with PropertyRules
   with CombinatorRules
   with RuleInstances
+  with Rule1Syntax
 
 trait BaseRules {
   def pure[A, B](func: A => Checked[B]): Rule[A, B] =
@@ -271,4 +270,14 @@ trait RuleInstances {
       override def product[B, C](rule1: Rule[A, B], rule2: Rule[A, C]): Rule[A, (B, C)] =
         Rule.zip(rule1, rule2)
     }
+}
+
+trait Rule1Syntax {
+  implicit class Rule1Ops[A](self: Rule1[A]) {
+    def field[B](prefix: Path, lens: Lens[A, B])(implicit rule: Rule1[B]): Rule1[A] =
+      Rule.and(self, Rule.at(rule, prefix, lens))
+
+    def field[B](accessor: A => B)(implicit rule: Rule1[B]): Rule1[A] =
+      macro RuleMacros.field[A, B]
+  }
 }

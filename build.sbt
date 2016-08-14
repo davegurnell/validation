@@ -1,7 +1,7 @@
 organization   := "com.davegurnell"
 name           := "checklist"
 version        := "0.0.1"
-scalaVersion   := "2.11.7"
+scalaVersion   := "2.11.8"
 scalacOptions ++= Seq("-deprecation", "-feature")
 
 resolvers += "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"

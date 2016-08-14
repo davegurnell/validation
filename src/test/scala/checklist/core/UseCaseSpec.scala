@@ -2,35 +2,34 @@ package checklist.core
 
 import cats.data.Ior
 import cats.instances.list._
-import monocle.macros.Lenses
 import org.scalatest._
 import scala.language.higherKinds
 
 class UseCaseSpec extends FreeSpec with Matchers with RuleSpecHelpers {
   import Rule._
 
-  @Lenses("_") case class Address(house: Int, street: String)
-  @Lenses("_") case class Person(name: String, age: Int, address: Address)
-  @Lenses("_") case class Business(name: String, addresses: List[Address])
+  case class Address(house: Int, street: String)
+  case class Person(name: String, age: Int, address: Address)
+  case class Business(name: String, addresses: List[Address])
 
   implicit val addressValidator: Rule1[Address] =
     Rule.pass[Address]
-      .field("house", Address._house)(gte(1))
-      .field("street", Address._street)(nonEmpty[String])
+      .field(_.house)(gte(1))
+      .field(_.street)(nonEmpty[String])
 
-  val addressesValidator: Rule1[List[Address]] =
+  implicit val addressesValidator: Rule1[List[Address]] =
     addressValidator.seq[List]
 
   implicit val personValidator: Rule1[Person] =
     Rule.pass[Person]
-      .field("name", Person._name)(nonEmpty[String])
-      .field("age", Person._age)(gte(1))
-      .field("address", Person._address)(addressValidator)
+      .field(_.name)(nonEmpty[String])
+      .field(_.age)(gte(1))
+      .field(_.address)
 
   implicit val businessValidator: Rule1[Business] =
     Rule.pass[Business]
-      .field("name", Business._name)(nonEmpty[String])
-      .field("addresses", Business._addresses)(addressValidator.seq[List])
+      .field(_.name)(nonEmpty[String])
+      .field(_.addresses)
 
   "example from the readme" - {
     "should validate a valid person" in {

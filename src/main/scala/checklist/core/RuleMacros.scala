@@ -6,25 +6,31 @@ import scala.reflect.macros.blackbox.Context
 class RuleMacros(val c: Context) {
   import c.universe._
 
-  def field[A, B](accessor: c.Tree)(rule: c.Tree): c.Tree = {
+  def field[A: c.WeakTypeTag, B: c.WeakTypeTag](accessor: c.Tree)(rule: c.Tree): c.Tree = {
+    val a = weakTypeOf[A]
+    val b = weakTypeOf[B]
     val name = accessorName(accessor)
-    q"${c.prefix}.field(${name.toString}, _.${name})($rule)"
+    val path = q"""${name.toString} :: _root_.checklist.core.PNil"""
+    val lens = q"""monocle.macros.GenLens[$a].apply[$b](_.$name)"""
+    q"${c.prefix}.field($path, $lens)($rule)"
   }
 
   def seqField[A, B](accessor: c.Tree)(rule: c.Tree): c.Tree = {
-    val name = accessorName(accessor)
-    q"${c.prefix}.seqField(${name.toString}, _.${name})($rule)"
+    val name = accessorName(accessor).toString
+    val path = q"""$name :: _root_.checklist.core.PNil"""
+    val lens = q"""monocle.macros.GenLens[A]($accessor)"""
+    q"${c.prefix}.seqField($path, $lens)($rule)"
   }
 
-  def fieldUpdate[A, B](accessor: c.Tree)(rule: c.Tree): c.Tree = {
-    val name = accessorName(accessor)
-    q"${c.prefix}.field(${name.toString}, _.${name})($rule)"
-  }
+  // def fieldUpdate[A, B](accessor: c.Tree)(rule: c.Tree): c.Tree = {
+  //   val name = accessorName(accessor)
+  //   q"${c.prefix}.field(${name.toString}, _.${name})($rule)"
+  // }
 
-  def seqFieldUpdate[A, B](accessor: c.Tree)(rule: c.Tree): c.Tree = {
-    val name = accessorName(accessor)
-    q"${c.prefix}.seqField(${name.toString}, _.${name})($rule)"
-  }
+  // def seqFieldUpdate[A, B](accessor: c.Tree)(rule: c.Tree): c.Tree = {
+  //   val name = accessorName(accessor)
+  //   q"${c.prefix}.seqField(${name.toString}, _.${name})($rule)"
+  // }
 
   private def accessorName(accessor: c.Tree) = accessor match {
     case q"($param) => $obj.$name" => name
