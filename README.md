@@ -66,7 +66,8 @@ where a `ValidationResult` represents a validation error or warning and encapsul
 
 ~~~ scala
 scala> ValidationError("FAIL!") prefix 123 prefix "bar" prefix "foo"
-res0: io.underscore.validation.ValidationError = ValidationError(FAIL!,ValidationPath(foo.bar[123]))
+res0: io.underscore.validation.ValidationError = 
+  ValidationError(FAIL!,ValidationPath(foo.bar[123]))
 
 scala> res0.message
 res1: String = FAIL!
@@ -85,10 +86,12 @@ scala> required(res0)
 res1: io.underscore.validation.Validator[Option[Int]] = <function1>
 
 scala> res1(None)
-res2: Seq[io.underscore.validation.ValidationResult] = List(ValidationError(Value is required,ValidationPath()))
+res2: Seq[io.underscore.validation.ValidationResult] = List(
+  ValidationError(Value is required,ValidationPath()))
 
 scala> res1(Some(-1))
-res3: Seq[io.underscore.validation.ValidationResult] = List(ValidationError(Must be 0 or higher,ValidationPath()))
+res3: Seq[io.underscore.validation.ValidationResult] = List(
+  ValidationError(Must be 0 or higher,ValidationPath()))
 ~~~
 
 Like validation results, validators can be assocated with specific paths into the data:
@@ -98,7 +101,8 @@ scala> res1 prefix "inner" prefix "outer"
 res4: io.underscore.validation.Validator[Option[Int]] = <function1>
 
 scala> res4(Some(4))
-res5: Seq[io.underscore.validation.ValidationResult] = List(ValidationError(Must be 3 or lower,ValidationPath(outer.inner)))
+res5: Seq[io.underscore.validation.ValidationResult] = List(
+  ValidationError(Must be 3 or lower,ValidationPath(outer.inner)))
 ~~~
 
 The library makes use of Scala macros in certain places to automatically capture path information from the names of accessors used to drill down into data:
@@ -117,3 +121,12 @@ res1: Seq[io.underscore.validation.ValidationResult] = List(
   ValidationError(Must be 1 or higher,ValidationPath(house)),
   ValidationWarning(Must not be empty,ValidationPath(street)))
 ~~~
+
+Contributors
+------------
+
+Many thanks to the following for their contributions:
+
+ - [Jono Ferguson](https://github.com/jonoabroad)
+ - [Richard Dallaway](https://github.com/d6y)
+ - [Raúl Piaggio](https://github.com/rpiaggio)

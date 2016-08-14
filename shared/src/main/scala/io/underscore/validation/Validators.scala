@@ -45,69 +45,59 @@ trait Validators {
   def neq[A](comp: A, msg: => String): Validator[A] =
     Validator[A] { in => if(in == comp) fail(msg) else pass }
 
-  def lt[A](comp: A)(implicit order: Ordering[A]): Validator[A] =
+  def lt[A](comp: A)(implicit order: Ordering[_ >: A]): Validator[A] =
     lt(comp, s"Must be less than $comp")
 
-  def lt[A](comp: A, msg: => String)(implicit order: Ordering[A]): Validator[A] =
+  def lt[A](comp: A, msg: => String)(implicit order: Ordering[_ >: A]): Validator[A] =
     Validator[A] { in => if(order.lt(in, comp)) pass else fail(msg) }
 
-  def lte[A](comp: A)(implicit order: Ordering[A]): Validator[A] =
+  def lte[A](comp: A)(implicit order: Ordering[_ >: A]): Validator[A] =
     lte(comp, s"Must be $comp or less")
 
-  def lte[A](comp: A, msg: => String)(implicit order: Ordering[A]): Validator[A] =
+  def lte[A](comp: A, msg: => String)(implicit order: Ordering[_ >: A]): Validator[A] =
     Validator[A] { in => if(order.lteq(in, comp)) pass else fail(msg) }
 
-  def gt[A](comp: A)(implicit order: Ordering[A]): Validator[A] =
+  def gt[A](comp: A)(implicit order: Ordering[_ >: A]): Validator[A] =
     gt(comp, s"Must be greater than $comp")
 
-  def gt[A](comp: A, msg: => String)(implicit order: Ordering[A]): Validator[A] =
+  def gt[A](comp: A, msg: => String)(implicit order: Ordering[_ >: A]): Validator[A] =
     Validator[A] { in => if(order.gt(in, comp)) pass else fail(msg) }
 
-  def gte[A](comp: A)(implicit order: Ordering[A]): Validator[A] =
+  def gte[A](comp: A)(implicit order: Ordering[_ >: A]): Validator[A] =
     gte(comp, s"Must be $comp or higher")
 
-  def gte[A](comp: A, msg: => String)(implicit order: Ordering[A]): Validator[A] =
+  def gte[A](comp: A, msg: => String)(implicit order: Ordering[_ >: A]): Validator[A] =
     Validator[A] { in => if(order.gteq(in, comp)) pass else fail(msg) }
-
-  // TODO: Update to work with arbitrary sequences
-  def nonEmpty: Validator[String] =
+  
+  def nonEmpty[E, S <% Seq[E]]: Validator[S] =
     nonEmpty(s"Must not be empty")
 
-  // TODO: Update to work with arbitrary sequences
-  def nonEmpty(msg: => String): Validator[String] =
-    Validator[String] { in => if(in.isEmpty) fail(msg) else pass }
+  def nonEmpty[E, S <% Seq[E]](msg: => String): Validator[S] =
+    Validator[S] { in => if(in.isEmpty) fail(msg) else pass }
 
-  // TODO: Update to work with arbitrary sequences
-  def lengthLt(comp: Int): Validator[String] =
+  def lengthLt[E, S <% Seq[E]](comp: Int): Validator[S] =
     lengthLt(comp, s"Length must be less than $comp")
 
-  // TODO: Update to work with arbitrary sequences
-  def lengthLt(comp: Int, msg: => String): Validator[String] =
-    Validator[String] { in => if(in.length < comp) pass else fail(msg) }
+  def lengthLt[E, S <% Seq[E]](comp: Int, msg: => String): Validator[S] =
+    Validator[S] { in => if(in.length < comp) pass else fail(msg) }
 
-  // TODO: Update to work with arbitrary sequences
-  def lengthLte(comp: Int): Validator[String] =
+  def lengthLte[E, S <% Seq[E]](comp: Int): Validator[S] =
     lengthLte(comp, s"Length must be at most $comp")
 
-  // TODO: Update to work with arbitrary sequences
-  def lengthLte(comp: Int, msg: => String): Validator[String] =
-    Validator[String] { in => if(in.length <= comp) pass else fail(msg) }
+  def lengthLte[E, S <% Seq[E]](comp: Int, msg: => String): Validator[S] =
+    Validator[S] { in => if(in.length <= comp) pass else fail(msg) }
 
-  // TODO: Update to work with arbitrary sequences
-  def lengthGt(comp: Int): Validator[String] =
+  def lengthGt[E, S <% Seq[E]](comp: Int): Validator[S] =
     lengthGt(comp, s"Length must be more than $comp")
 
-  // TODO: Update to work with arbitrary sequences
-  def lengthGt(comp: Int, msg: => String): Validator[String] =
-    Validator[String] { in => if(in.length > comp) pass else fail(msg) }
+  def lengthGt[E, S <% Seq[E]](comp: Int, msg: => String): Validator[S] =
+    Validator[S] { in => if(in.length > comp) pass else fail(msg) }
 
-  // TODO: Update to work with arbitrary sequences
-  def lengthGte(comp: Int): Validator[String] =
+  def lengthGte[E, S <% Seq[E]](comp: Int): Validator[S] =
     lengthGte(comp, s"Length must be at least $comp")
 
-  // TODO: Update to work with arbitrary sequences
-  def lengthGte(comp: Int, msg: => String): Validator[String] =
-    Validator[String] { in => if(in.length >= comp) pass else fail(msg) }
+  def lengthGte[E, S <% Seq[E]](comp: Int, msg: => String): Validator[S] =
+    Validator[S] { in => if(in.length >= comp) pass else fail(msg) }
 
   def matchesRegex(regex: Regex, msg: => String): Validator[String] =
     Validator[String] { in => if(regex.findFirstIn(in).isDefined) pass else fail(msg) }
