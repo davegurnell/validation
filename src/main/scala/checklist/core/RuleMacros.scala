@@ -1,6 +1,7 @@
 package checklist.core
 
 import scala.language.experimental.macros
+import scala.language.higherKinds
 import scala.reflect.macros.blackbox.Context
 
 class RuleMacros(val c: Context) {
@@ -15,22 +16,14 @@ class RuleMacros(val c: Context) {
     q"${c.prefix}.field($path, $lens)($rule)"
   }
 
-  def seqField[A, B](accessor: c.Tree)(rule: c.Tree): c.Tree = {
-    val name = accessorName(accessor).toString
-    val path = q"""$name :: _root_.checklist.core.PNil"""
-    val lens = q"""monocle.macros.GenLens[A]($accessor)"""
-    q"${c.prefix}.seqField($path, $lens)($rule)"
+  def fieldWith[A: c.WeakTypeTag, B: c.WeakTypeTag](accessor: c.Tree)(builder: c.Tree): c.Tree = {
+    val a = weakTypeOf[A]
+    val b = weakTypeOf[B]
+    val name = accessorName(accessor)
+    val path = q"""${name.toString} :: _root_.checklist.core.PNil"""
+    val lens = q"""monocle.macros.GenLens[$a].apply[$b](_.$name)"""
+    q"${c.prefix}.fieldWith($path, $lens)($builder)"
   }
-
-  // def fieldUpdate[A, B](accessor: c.Tree)(rule: c.Tree): c.Tree = {
-  //   val name = accessorName(accessor)
-  //   q"${c.prefix}.field(${name.toString}, _.${name})($rule)"
-  // }
-
-  // def seqFieldUpdate[A, B](accessor: c.Tree)(rule: c.Tree): c.Tree = {
-  //   val name = accessorName(accessor)
-  //   q"${c.prefix}.seqField(${name.toString}, _.${name})($rule)"
-  // }
 
   private def accessorName(accessor: c.Tree) = accessor match {
     case q"($param) => $obj.$name" => name

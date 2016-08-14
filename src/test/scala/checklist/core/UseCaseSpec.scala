@@ -16,9 +16,12 @@ class UseCaseSpec extends FreeSpec with Matchers with RuleSpecHelpers {
     Rule.pass[Address]
       .field(_.house)(gte(1))
       .field(_.street)(nonEmpty[String])
-
-  implicit val addressesValidator: Rule1[List[Address]] =
-    addressValidator.seq[List]
+      .fieldWith(_.house) { address =>
+        address.street match {
+          case "Acacia Road" => lte(29, warnings("There are only 29 houses on Acacia Road"))
+          case _             => pass
+        }
+      }
 
   implicit val personValidator: Rule1[Person] =
     Rule.pass[Person]
@@ -29,7 +32,7 @@ class UseCaseSpec extends FreeSpec with Matchers with RuleSpecHelpers {
   implicit val businessValidator: Rule1[Business] =
     Rule.pass[Business]
       .field(_.name)(nonEmpty[String])
-      .field(_.addresses)
+      .field(_.addresses)(addressValidator.seq)
 
   "example from the readme" - {
     "should validate a valid person" in {
@@ -41,12 +44,22 @@ class UseCaseSpec extends FreeSpec with Matchers with RuleSpecHelpers {
       val invalid = Person("", 0, Address(0, ""))
       personValidator(invalid) should be(Ior.both(
         errors(
-          ("name" :: PNil)                -> "Must not be empty",
-          ("age"  :: PNil)                -> "Must be greater than or equal to 1",
+          ("name"                :: PNil) -> "Must not be empty",
+          ("age"                 :: PNil) -> "Must be greater than or equal to 1",
           ("address" :: "house"  :: PNil) -> "Must be greater than or equal to 1",
           ("address" :: "street" :: PNil) -> "Must not be empty"
         ),
         invalid
+      ))
+    }
+
+    "should correct factual errors about bananaman" in {
+      val bananaman = Person("Eric Wimp", 11, Address(30, "Acacia Road"))
+      personValidator(bananaman) should be(Ior.both(
+        warnings(
+          ("address" :: "house" :: PNil) -> "There are only 29 houses on Acacia Road"
+        ),
+        bananaman
       ))
     }
   }

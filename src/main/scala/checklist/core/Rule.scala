@@ -14,46 +14,76 @@ sealed abstract class Rule[A, B] {
   def apply(value: A): Checked[B]
 
   def map[C](func: B => C): Rule[A, C] =
-    Rule.map(this, func)
+    Rule.pure(value => this(value) map func)
 
   def contramap[C](func: C => A): Rule[C, B] =
-    Rule.contramap(this, func)
+    Rule.pure(value => this(func(value)))
 
   def flatMap[C](func: B => Rule[A, C]): Rule[A, C] =
-    Rule.flatMap(this, func)
+    Rule.pure(value => this(value) flatMap (func(_)(value)))
 
   def andThen[C](that: Rule[B, C]): Rule[A, C] =
-    Rule.andThen(this, that)
+    Rule.pure(value => this(value) flatMap (that.apply))
 
   def zip[C](that: Rule[A, C]): Rule[A, (B, C)] =
-    Rule.zip(this, that)
+    Rule.pure { a =>
+      this(a) match {
+        case Ior.Left(msg1) =>
+          that(a) match {
+            case Ior.Left(msg2)    => Ior.left(msg1 concat msg2)
+            case Ior.Right(c)      => Ior.left(msg1)
+            case Ior.Both(msg2, c) => Ior.left(msg1 concat msg2)
+          }
+        case Ior.Right(b) =>
+          that(a) match {
+            case Ior.Left(msg2)    => Ior.left(msg2)
+            case Ior.Right(c)      => Ior.right((b, c))
+            case Ior.Both(msg2, c) => Ior.both(msg2, (b, c))
+          }
+        case Ior.Both(msg1, b) =>
+          that(a) match {
+            case Ior.Left(msg2)    => Ior.left(msg1 concat msg2)
+            case Ior.Right(c)      => Ior.both(msg1, (b, c))
+            case Ior.Both(msg2, c) => Ior.both(msg1 concat msg2, (b, c))
+          }
+      }
+    }
 
   def and[C](that: Rule[A, B]): Rule[A, B] =
-    Rule.and(this, that)
+    (this zip that) map (_._1)
 
   def seq[S[_]: Traverse]: Rule[S[A], S[B]] =
-    Rule.seq(this)
+    Rule.pure(value => value.map(this.apply).sequence)
 
   def opt: Rule[Option[A], Option[B]] =
-    Rule.opt(this)
+    Rule.pure {
+      case Some(value) => this(value) map (Some(_))
+      case None        => Ior.right(None)
+    }
+
+  def req: Rule[Option[A], B] =
+    req(errors("Value is required"))
 
   def req(messages: Messages): Rule[Option[A], B] =
-    Rule.req(this, messages)
+    Rule.pure {
+      case Some(value) => this(value)
+      case None        => Ior.left(messages)
+    }
+
 
   def prefix[P: PathPrefix](prefix: P): Rule[A, B] =
-    Rule.prefix(this, prefix)
+    Rule.pure(value => this(value) leftMap (_ map (_ prefix prefix)))
 
   def composeLens[S, T](lens: PLens[S, T, A, B]): Rule[S, T] =
-    Rule.composeLens(this, lens)
+    Rule.pure(value => this(lens.get(value)) map (lens.set(_)(value)))
 
   def at[P: PathPrefix, S, T](prefix: P, lens: PLens[S, T, A, B]): Rule[S, T] =
-    Rule.at(this, prefix, lens)
+    this composeLens lens prefix prefix
 }
 
 object Rule extends BaseRules
   with ConverterRules
   with PropertyRules
-  with CombinatorRules
   with RuleInstances
   with Rule1Syntax
 
@@ -110,25 +140,25 @@ trait PropertyRules {
   def gt[A](comp: A)(implicit ord: Ordering[A]): Rule[A, A] =
     gt(comp, errors(s"Must be greater than ${comp}"))
 
-  def gt[A](comp: A, messages: Messages)(implicit ord: Ordering[A]): Rule[A, A] =
+  def gt[A](comp: A, messages: Messages)(implicit ord: Ordering[_ >: A]): Rule[A, A] =
     test(messages)(ord.gt(_, comp))
 
-  def lt[A](comp: A)(implicit ord: Ordering[A]): Rule[A, A] =
+  def lt[A](comp: A)(implicit ord: Ordering[_ >: A]): Rule[A, A] =
     lt(comp, errors(s"Must be less than ${comp}"))
 
-  def lt[A](comp: A, messages: Messages)(implicit ord: Ordering[A]): Rule[A, A] =
+  def lt[A](comp: A, messages: Messages)(implicit ord: Ordering[_ >: A]): Rule[A, A] =
     test(messages)(ord.lt(_, comp))
 
-  def gte[A](comp: A)(implicit ord: Ordering[A]): Rule[A, A] =
+  def gte[A](comp: A)(implicit ord: Ordering[_ >: A]): Rule[A, A] =
     gte(comp, errors(s"Must be greater than or equal to ${comp}"))
 
-  def gte[A](comp: A, messages: Messages)(implicit ord: Ordering[A]): Rule[A, A] =
+  def gte[A](comp: A, messages: Messages)(implicit ord: Ordering[_ >: A]): Rule[A, A] =
     test(messages)(ord.gteq(_, comp))
 
-  def lte[A](comp: A)(implicit ord: Ordering[A]): Rule[A, A] =
+  def lte[A](comp: A)(implicit ord: Ordering[_ >: A]): Rule[A, A] =
     lte(comp, errors(s"Must be less than or equal to ${comp}"))
 
-  def lte[A](comp: A, messages: Messages)(implicit ord: Ordering[A]): Rule[A, A] =
+  def lte[A](comp: A, messages: Messages)(implicit ord: Ordering[_ >: A]): Rule[A, A] =
     test(messages)(ord.lteq(_, comp))
 
   def nonEmpty[S <% Seq[_]]: Rule[S, S] =
@@ -180,76 +210,6 @@ trait PropertyRules {
     test(messages)(value => !(values contains value))
 }
 
-trait CombinatorRules {
-  self: BaseRules =>
-
-  def map[A, B, C](rule: Rule[A, B], func: B => C): Rule[A, C] =
-    pure(value => rule(value).map(func))
-
-  def contramap[A, B, C](rule: Rule[A, B], func: C => A): Rule[C, B] =
-    pure(value => rule(func(value)))
-
-  def flatMap[A, B, C](rule: Rule[A, B], func: B => Rule[A, C]): Rule[A, C] =
-    pure(value => rule(value).flatMap(ans => func(ans)(value)))
-
-  def andThen[A, B, C](rule1: Rule[A, B], rule2: Rule[B, C]): Rule[A, C] =
-    pure(value1 => rule1(value1).flatMap(value2 => rule2(value2)))
-
-  def zip[A, B, C](rule1: Rule[A, B], rule2: Rule[A, C]): Rule[A, (B, C)] =
-    pure { a =>
-      rule1(a) match {
-        case Ior.Left(msg1) =>
-          rule2(a) match {
-            case Ior.Left(msg2)    => Ior.left(msg1 concat msg2)
-            case Ior.Right(c)      => Ior.left(msg1)
-            case Ior.Both(msg2, c) => Ior.left(msg1 concat msg2)
-          }
-        case Ior.Right(b) =>
-          rule2(a) match {
-            case Ior.Left(msg2)    => Ior.left(msg2)
-            case Ior.Right(c)      => Ior.right((b, c))
-            case Ior.Both(msg2, c) => Ior.both(msg2, (b, c))
-          }
-        case Ior.Both(msg1, b) =>
-          rule2(a) match {
-            case Ior.Left(msg2)    => Ior.left(msg1 concat msg2)
-            case Ior.Right(c)      => Ior.both(msg1, (b, c))
-            case Ior.Both(msg2, c) => Ior.both(msg1 concat msg2, (b, c))
-          }
-      }
-    }
-
-  def and[A, B](rule1: Rule[A, B], rule2: Rule[A, B]): Rule[A, B] =
-    zip(rule1, rule2).map(_._1)
-
-  def seq[S[_]: Traverse, A, B](rule: Rule[A, B]): Rule[S[A], S[B]] =
-    pure(value => value.map(rule.apply).sequence)
-
-  def opt[A, B](rule: Rule[A, B]): Rule[Option[A], Option[B]] =
-    pure(value => value match {
-      case Some(value) => rule(value).map(Some(_))
-      case None        => Ior.right(None)
-    })
-
-  def req[A, B](rule: Rule[A, B]): Rule[Option[A], B] =
-    req(rule, errors("Value is required"))
-
-  def req[A, B](rule: Rule[A, B], messages: Messages): Rule[Option[A], B] =
-    pure(value => value match {
-      case Some(value) => rule(value)
-      case None        => Ior.left(messages)
-    })
-
-  def composeLens[S, T, A, B](rule: Rule[A, B], lens: PLens[S, T, A, B]): Rule[S, T] =
-    pure(value => rule(lens.get(value)) map (lens.set(_)(value)))
-
-  def prefix[P: PathPrefix, A, B](rule: Rule[A, B], prefix: P): Rule[A, B] =
-    pure(value => rule(value) leftMap (_ map (_ prefix prefix)))
-
-  def at[P: PathPrefix, S, T, A, B](rule: Rule[A, B], prefix: P, lens: PLens[S, T, A, B]): Rule[S, T] =
-    rule composeLens lens prefix prefix
-}
-
 trait RuleInstances {
   self: BaseRules =>
 
@@ -265,19 +225,25 @@ trait RuleInstances {
         }
 
       override def map[B, C](rule: Rule[A, B])(func: B => C): Rule[A, C] =
-        Rule.map(rule, func)
+        rule map func
 
       override def product[B, C](rule1: Rule[A, B], rule2: Rule[A, C]): Rule[A, (B, C)] =
-        Rule.zip(rule1, rule2)
+        rule1 zip rule2
     }
 }
 
 trait Rule1Syntax {
   implicit class Rule1Ops[A](self: Rule1[A]) {
-    def field[B](prefix: Path, lens: Lens[A, B])(implicit rule: Rule1[B]): Rule1[A] =
-      Rule.and(self, Rule.at(rule, prefix, lens))
+    def field[B](path: Path, lens: Lens[A, B])(implicit rule: Rule1[B]): Rule1[A] =
+      self and rule.at(path, lens)
 
     def field[B](accessor: A => B)(implicit rule: Rule1[B]): Rule1[A] =
       macro RuleMacros.field[A, B]
+
+    def fieldWith[B](path: Path, lens: Lens[A, B])(implicit builder: A => Rule1[B]): Rule1[A] =
+      self and Rule.pure(value => builder(value).at(path, lens).apply(value))
+
+    def fieldWith[B](accessor: A => B)(implicit builder: A => Rule1[B]): Rule1[A] =
+      macro RuleMacros.fieldWith[A, B]
   }
 }

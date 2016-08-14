@@ -2,6 +2,8 @@ package checklist.core
 
 import cats.data.{Ior, NonEmptyList}
 import org.scalatest._
+import monocle.macros.Lenses
+import scala.language.higherKinds
 import Rule._
 
 class BaseRuleSpec extends FreeSpec with Matchers with RuleSpecHelpers {
@@ -44,14 +46,14 @@ class ConverterRulesSpec extends FreeSpec with Matchers with RuleSpecHelpers {
 
 class PropertyRulesSpec extends FreeSpec with Matchers with RuleSpecHelpers {
   "opt" in {
-    val rule = opt(eql("ok"))
+    val rule = eql("ok").opt
     rule(None)       should be(Ior.right(None))
     rule(Some("ok")) should be(Ior.right(Some("ok")))
     rule(Some("no")) should be(Ior.both(errors("Must be ok"), Some("no")))
   }
 
   "req" in {
-    val rule = req(eql(0))
+    val rule = eql(0).req
     rule(None)    should be(Ior.left(errors("Value is required")))
     rule(Some(0)) should be(Ior.right(0))
     rule(Some(1)) should be(Ior.both(errors("Must be 0"), 1))
@@ -284,6 +286,42 @@ class CatsRuleSpec extends FreeSpec with Matchers with RuleSpecHelpers {
     val actual   = parseAddress(Map("house" -> "-1", "street" -> ""))
     val expected = Ior.both(errors("Must be greater than 0", "Must not be empty"), Address(-1, ""))
     actual should be(expected)
+  }
+}
+
+class Rule1SyntaxSpec extends FreeSpec with Matchers with RuleSpecHelpers {
+  @Lenses case class Coord(x: Int, y: Int)
+
+  "field macro" in {
+    val rule = Rule.pass[Coord].field(_.x)(gt(0, errors("fail")))
+    rule(Coord(1, 0)) should be(Ior.right(Coord(1, 0)))
+    rule(Coord(0, 0)) should be(Ior.both(errors(("x" :: PNil) -> "fail"), Coord(0, 0)))
+    rule(Coord(0, 1)) should be(Ior.both(errors(("x" :: PNil) -> "fail"), Coord(0, 1)))
+    rule(Coord(1, 1)) should be(Ior.right(Coord(1, 1)))
+  }
+
+  "fieldWith macro" in {
+    val rule = Rule.pass[Coord].fieldWith(_.x)(c => gte(c.y, errors("fail")))
+    rule(Coord(1, 0)) should be(Ior.right(Coord(1, 0)))
+    rule(Coord(0, 0)) should be(Ior.right(Coord(0, 0)))
+    rule(Coord(0, 1)) should be(Ior.both(errors(("x" :: PNil) -> "fail"), Coord(0, 1)))
+    rule(Coord(1, 1)) should be(Ior.right(Coord(1, 1)))
+  }
+
+  "field method" in {
+    val rule = Rule.pass[Coord].field("z" :: PNil, Coord.x)(gt(0, errors("fail")))
+    rule(Coord(1, 0)) should be(Ior.right(Coord(1, 0)))
+    rule(Coord(0, 0)) should be(Ior.both(errors(("z" :: PNil) -> "fail"), Coord(0, 0)))
+    rule(Coord(0, 1)) should be(Ior.both(errors(("z" :: PNil) -> "fail"), Coord(0, 1)))
+    rule(Coord(1, 1)) should be(Ior.right(Coord(1, 1)))
+  }
+
+  "fieldWith method" in {
+    val rule = Rule.pass[Coord].fieldWith("z" :: PNil, Coord.x)(c => gte(c.y, errors("fail")))
+    rule(Coord(1, 0)) should be(Ior.right(Coord(1, 0)))
+    rule(Coord(0, 0)) should be(Ior.right(Coord(0, 0)))
+    rule(Coord(0, 1)) should be(Ior.both(errors(("z" :: PNil) -> "fail"), Coord(0, 1)))
+    rule(Coord(1, 1)) should be(Ior.right(Coord(1, 1)))
   }
 }
 
