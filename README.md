@@ -1,11 +1,11 @@
 Validation
 ==========
 
-Copyright 2014 Dave Gurnell of [Underscore](http://underscore.io)
-
-Licensed under the [Apache License v2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
-
 Work-in-progress library demonstrating a functional programming approach to data validation in Scala.
+
+Copyright 2014-16 Dave Gurnell. Licensed [Apache 2](http://www.apache.org/licenses/LICENSE-2.0.html).
+
+*Note: I'm working on a "sequel" to this library. Initial spikes are [here](https://github.com/davegurnell/checklist).*
 
 Synopsis
 --------
