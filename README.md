@@ -129,3 +129,4 @@ Many thanks to the following for their contributions:
 
  - [Jono Ferguson](https://github.com/jonoabroad)
  - [Richard Dallaway](https://github.com/d6y)
+ - [Raúl Piaggio](https://github.com/rpiaggio)
